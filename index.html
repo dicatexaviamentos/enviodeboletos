@@ -64,11 +64,19 @@
         .send-button:hover {
             background-color: #0056b3;
         }
+        footer {
+            text-align: center;
+            margin-top: 0px;
+            padding: 0px;
+            color: #666;
+            font-size: 12px;
+            
+        }
     </style>
 </head>
 
 <body>
-    <h1>Upload de Arquivos PDF</h1>
+    <h1>Envio de Boletos</h1>
     <input type="file" id="fileInput" multiple accept=".pdf"><br>
     <button onclick="listarNomes()">Listar Nomes</button><br><br>
     <table id="tabelaClientes">
@@ -197,6 +205,9 @@
             window.location.href = emailLink;
         }
     </script>
+    <footer>
+        <p>by Marcelo Della Matta | 2024 | Dicatex Aviamentos</p>
+    </footer>
 </body>
 
 </html>
