@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload de Arquivos PDF</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #fileInput {
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .send-button {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .send-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload de Arquivos PDF</h1>
+    <input type="file" id="fileInput" multiple accept=".pdf"><br>
+    <button onclick="listarNomes()">Listar Nomes</button><br><br>
+    <table id="tabelaClientes">
+        <thead>
+            <tr>
+                <th>Nome do Arquivo</th>
+                <th>Nome do Cliente</th>
+                <th>Email</th>
+                <th>Enviar</th>
+                <th>Enviado</th> <!-- Nova coluna -->
+            </tr>
+        </thead>
+        <tbody id="listaNomes"></tbody>
+    </table>
+
+    <script>
+        function listarNomes() {
+            var fileInput = document.getElementById('fileInput');
+            var files = fileInput.files;
+            var listaNomes = document.getElementById('listaNomes');
+            listaNomes.innerHTML = ''; // Limpa a lista antes de adicionar os nomes
+
+            for (var i = 0; i < files.length; i++) {
+                var fileName = files[i].name.replace('.pdf', '').toUpperCase(); // Convertendo para maiúsculas
+
+                // Armazena temporariamente o arquivo
+                localStorage.setItem('tempPDF', files[i]);
+
+                // Busca o nome do cliente no arquivo CSV
+                buscarNomeEmail(fileName);
+            }
+        }
+
+        function buscarNomeEmail(fileName) {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        var clientes = xhr.responseText.split('\n');
+                        var nomeCliente = '';
+                        var emailCliente = '';
+
+                        for (var j = 0; j < clientes.length; j++) {
+                            var clienteInfo = clientes[j].split(';');
+                            if (clienteInfo.length === 4) { // Verifica se a linha está no formato esperado
+                                var clienteNome = clienteInfo[1].trim().toUpperCase(); // Convertendo para maiúsculas
+                                var clienteEmail = clienteInfo[3].trim(); // Remover espaços em branco
+
+                                if (clienteNome.indexOf(fileName) === 0) { // Verifica se o nome do arquivo está no início do nome do cliente
+                                    nomeCliente = clienteNome;
+                                    emailCliente = clienteEmail;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Adiciona o nome do cliente e o email na tabela
+                        adicionarClienteTabela(fileName, nomeCliente, emailCliente);
+                    } else {
+                        console.error('Erro ao carregar o arquivo CSV');
+                    }
+                }
+            };
+            xhr.open('GET', 'clientes.csv', true);
+            xhr.send();
+        }
+
+        function adicionarClienteTabela(nomeArquivo, nomeCliente, emailCliente) {
+            var tabelaClientes = document.getElementById('tabelaClientes');
+            var listaNomes = tabelaClientes.querySelector('#listaNomes');
+
+            var newRow = listaNomes.insertRow();
+            var nomeArquivoCell = newRow.insertCell(0);
+            var nomeClienteCell = newRow.insertCell(1);
+            var emailClienteCell = newRow.insertCell(2);
+            var enviarCell = newRow.insertCell(3);
+            var enviadoCell = newRow.insertCell(4); // Nova célula para exibir "Enviado"
+
+            nomeArquivoCell.textContent = nomeArquivo;
+            nomeClienteCell.textContent = nomeCliente || 'Cliente não encontrado';
+            emailClienteCell.textContent = emailCliente || '---';
+
+            var enviarButton = document.createElement('button');
+            enviarButton.classList.add('send-button');
+            enviarButton.textContent = 'Enviar';
+            enviarButton.onclick = function () {
+                enviarEmail(emailCliente, nomeArquivo);
+                enviadoCell.textContent = 'Enviado'; // Define o texto como "Enviado" após clicar em enviar
+            };
+            enviarCell.appendChild(enviarButton);
+        }
+
+        function enviarEmail(destinatario, nomeCliente) {
+            var assunto = "Boleto Dicatex";
+
+            // Detectar o horário atual
+            var saudacao = "";
+            var agora = new Date();
+            var hora = agora.getHours();
+            if (hora < 12) {
+                saudacao = "Bom dia";
+            } else if (hora < 18) {
+                saudacao = "Boa tarde";
+            } else {
+                saudacao = "Boa noite";
+            }
+
+            // Corpo do e-mail sem o nome do cliente na saudação
+            var corpoEmail = saudacao + ",\n\nSegue em anexo o boleto referente à NF-e:\n\nAtenciosamente.";
+
+            // Obter o arquivo temporário
+            var tempPDF = localStorage.getItem('tempPDF');
+
+            // Criar um objeto Blob a partir do arquivo
+            var blob = new Blob([tempPDF], { type: 'application/pdf' });
+
+            // Criar um objeto FormData para enviar o arquivo via email
+            var formData = new FormData();
+            formData.append('file', blob, nomeCliente + ".pdf"); // Usei nomeCliente para dar um nome mais significativo ao arquivo
+
+            var emailLink = "mailto:" + destinatario +
+                "?subject=" + encodeURIComponent(assunto) +
+                "&body=" + encodeURIComponent(corpoEmail);
+
+            // Abre um link de email com os parâmetros
+            window.location.href = emailLink;
+        }
+    </script>
+</body>
+
+</html>
