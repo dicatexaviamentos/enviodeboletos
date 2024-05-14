@@ -175,46 +175,33 @@
             enviarCell.appendChild(enviarButton);
         }
 
-        function enviarEmail(destinatario, nomeCliente) {
-            var assunto = "Boleto Dicatex";
+        function enviarEmail(destinatario, nomeArquivo) {
+    var assunto = "Boleto Dicatex";
+    var corpoEmail = "Mensagem de exemplo para o corpo do e-mail.";
 
-            // Detectar o horário atual
-            var saudacao = "";
-            var agora = new Date();
-            var hora = agora.getHours();
-            if (hora < 12) {
-                saudacao = "Bom dia";
-            } else if (hora < 18) {
-                saudacao = "Boa tarde";
-            } else {
-                saudacao = "Boa noite";
-            }
+    var formData = new FormData();
+    formData.append('email', destinatario);
+    formData.append('subject', assunto);
+    formData.append('body', corpoEmail);
+    formData.append('file', document.getElementById('fileInput').files[0]); // Obtém o arquivo selecionado
 
-            // Corpo do e-mail sem o nome do cliente na saudação
-            var corpoEmail = saudacao + ",\n\nSegue em anexo o boleto referente à NF-e:\n\nAtenciosamente.";
-
-            // Obter o arquivo temporário
-            var tempPDF = localStorage.getItem('tempPDF');
-
-            // Criar um objeto Blob a partir do arquivo
-            var blob = new Blob([tempPDF], { type: 'application/pdf' });
-
-            // Criar um objeto FormData para enviar o arquivo via email
-            var formData = new FormData();
-            formData.append('file', blob, nomeCliente + ".pdf"); // Usei nomeCliente para dar um nome mais significativo ao arquivo
-
-            var emailLink = "mailto:" + destinatario +
-                "?subject=" + encodeURIComponent(assunto) +
-                "&body=" + encodeURIComponent(corpoEmail);
-
-            // Abre um link de email com os parâmetros
-            window.location.href = emailLink;
+    fetch('http://localhost:3000/sendEmail', { // Aqui você precisa ajustar o endereço para corresponder ao seu servidor backend
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao enviar o e-mail.');
         }
+        console.log('E-mail enviado com sucesso.');
+        // Aqui você pode adicionar lógica adicional após o envio bem-sucedido, como atualizar a interface do usuário, exibir uma mensagem de sucesso, etc.
+    })
+    .catch(error => {
+        console.error('Erro ao enviar o e-mail:', error);
+        // Aqui você pode adicionar lógica adicional para lidar com erros, como exibir uma mensagem de erro para o usuário.
+    });
+}
 
-        // Função para reiniciar a página
-        function resetPage() {
-            window.location.reload();
-        }
     </script>
     <footer>
         <p>by Marcelo Della Matta | 2024 | Dicatex Aviamentos</p>
